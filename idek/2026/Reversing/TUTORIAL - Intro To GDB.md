@@ -5,7 +5,6 @@
 | **Category** | Reversing |
 | **Difficulty** | Easy (로그 내용으로 추정) |
 | **Points** | Unknown |
-| **Solver** | AI AutoPwn |
 
 ---
 

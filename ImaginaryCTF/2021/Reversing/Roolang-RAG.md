@@ -5,7 +5,6 @@
 | **Category** | Reversing |
 | **Difficulty** | Hard |
 | **Points** | Unknown |
-| **Solver** | AI AutoPwn |
 
 ---
 

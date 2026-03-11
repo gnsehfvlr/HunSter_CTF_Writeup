@@ -5,7 +5,6 @@
 | **Category** | Reversing |
 | **Difficulty** | Easy |
 | **Points** | 300 |
-| **Solver** | AI AutoPwn |
 
 ---
 

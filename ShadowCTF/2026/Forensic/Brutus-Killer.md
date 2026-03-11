@@ -5,7 +5,6 @@
 | **Category** | Forensic |
 | **Difficulty** | Easy |
 | **Points** | Unknown |
-| **Solver** | AI AutoPwn |
 
 ---
 

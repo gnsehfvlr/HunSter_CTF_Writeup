@@ -5,7 +5,6 @@
 | **Category** | Crypto |
 | **Difficulty** | Medium |
 | **Points** | Unknown |
-| **Solver** | AI AutoPwn |
 
 ---
 

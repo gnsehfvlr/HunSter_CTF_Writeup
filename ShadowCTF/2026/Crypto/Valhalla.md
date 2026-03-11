@@ -5,7 +5,6 @@
 | **Category** | Crypto |
 | **Difficulty** | Easy |
 | **Points** | 50 |
-| **Solver** | AI AutoPwn |
 
 ---
 
