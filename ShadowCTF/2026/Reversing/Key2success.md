@@ -94,7 +94,7 @@ bool main(int argc, char **argv, char **envp) {
 
 ---
 
-## 🧠 취약점 분석
+## 🧠 문제 분석
 
 ### 1) check_password 함수 분석
 

@@ -80,7 +80,7 @@ uncompyle6 /sandbox/bins/task.pyc
 
 ---
 
-## 🧠 취약점 분석
+## 🧠 문제 분석
 
 ### 1) 정적 키/IV 추출 가능
 

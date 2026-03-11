@@ -62,7 +62,7 @@ jadx -d /tmp/jadx_output /sandbox/bins/Fit32.apk
 
 ---
 
-## 🧠 취약점 분석
+## 🧠 문제 분석
 
 ### 1) 디컴파일된 코드 분석
 

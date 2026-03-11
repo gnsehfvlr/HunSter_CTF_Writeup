@@ -120,7 +120,7 @@ cat /tmp/xlsx_extract/xl/worksheets/sheet2.xml | grep -A10 -B10 "K1"
 
 ---
 
-## 🧠 취약점 분석
+## 🧠 문제 분석
 
 ### 논리 회로 기반 플래그 검증 구조
 

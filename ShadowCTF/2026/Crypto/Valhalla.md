@@ -44,7 +44,7 @@ This is a cipher. You will have to decode this text and find the flag.
 
 ---
 
-## 🧠 취약점 분석
+## 🧠 문제 분석
 
 ROT13 이후 추가적인 시저 암호(알파벳 고정 시프트)가 사용된 것으로 추정. 시저 암호는 26가지 가능한 시프트 값(ROT0 ~ ROT25)을 가지며, 브루트포스 공격이 실용적이다. 특히, 플래그 포맷이 `ShadowCTF{...}`임이 사전에 유추 가능하므로, 이 문자열이 포함된 출력을 찾는 것이 핵심.
 

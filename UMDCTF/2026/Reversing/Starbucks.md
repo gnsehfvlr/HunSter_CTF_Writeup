@@ -55,7 +55,7 @@ javap -c -v /sandbox/bins/IsThisTheFlag.class
 
 ---
 
-## 🧠 취약점 분석
+## 🧠 문제 분석
 
 `f3()` 메서드는 다음과 같은 순서로 문자열을 변환합니다:
 

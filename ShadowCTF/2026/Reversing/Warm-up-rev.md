@@ -59,7 +59,7 @@ you need patience to get the flag.
 
 ---
 
-## 🧠 취약점 분석
+## 🧠 문제 분석
 
 ### 1) 정적 분석을 통한 제어 흐름 확인
 

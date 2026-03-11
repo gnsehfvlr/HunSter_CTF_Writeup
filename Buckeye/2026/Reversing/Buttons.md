@@ -66,7 +66,7 @@ cat /sandbox/bins/output/sources/defpackage/Buttons.java
 
 ---
 
-## 🧠 취약점 분석
+## 🧠 문제 분석
 
 디컴파일된 `Buttons.java` 코드를 분석하면, 다음과 같은 핵심 로직이 존재합니다:
 

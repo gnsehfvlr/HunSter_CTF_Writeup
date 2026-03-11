@@ -51,7 +51,7 @@ python3 /sandbox/bins/checker.py
 
 ---
 
-## 🧠 취약점 분석
+## 🧠 문제 분석
 
 `encode()` 함수는 다음과 같은 순서로 변환을 수행합니다:
 

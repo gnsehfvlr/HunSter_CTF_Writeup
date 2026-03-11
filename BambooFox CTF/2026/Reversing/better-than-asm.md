@@ -59,7 +59,7 @@ cat /sandbox/bins/task.ll
 
 ---
 
-## 🧠 취약점 분석
+## 🧠 문제 분석
 
 LLVM IR 코드를 분석하면 `main` 함수 내에서 다음과 같은 로직이 존재함:
 

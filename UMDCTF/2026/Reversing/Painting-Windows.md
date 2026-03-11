@@ -51,7 +51,7 @@ afl~password,Windows,Success,Failed
 
 ---
 
-## 🧠 취약점 분석
+## 🧠 문제 분석
 
 ### 디컴파일을 통한 로직 분석  
 `main` 함수를 디컴파일하여 프로그램의 핵심 로직을 분석했습니다.  

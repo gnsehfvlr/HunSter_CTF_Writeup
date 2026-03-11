@@ -74,7 +74,7 @@ ulong main(uint32_t argc, char **argv) {
 
 ---
 
-## 🧠 취약점 분석
+## 🧠 문제 분석
 
 ### transform 함수의 어셈블리 분석
 

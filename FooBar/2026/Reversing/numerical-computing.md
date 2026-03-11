@@ -38,7 +38,7 @@ r2 -q "afl; pdf @main" /sandbox/bins/try
 
 ---
 
-## 🧠 취약점 분석
+## 🧠 문제 분석
 
 `dbg.question` 함수를 디컴파일하여 분석한 결과, 다음과 같은 검증 로직이 존재함을 확인했습니다:
 

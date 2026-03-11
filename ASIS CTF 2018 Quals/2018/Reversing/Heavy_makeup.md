@@ -66,7 +66,7 @@ int __cdecl main(int argc, const char **argv, const char **envp) {
 
 ---
 
-## 🧠 취약점 분석
+## 🧠 문제 분석
 
 문서 내용은 마치 Reverse Engineering 문제의 해설 글처럼 구성되어 있으며, C 코드 스니펫, 분석 과정, 그리고 원격 서버 연결 설명 등을 포함하고 있다.  
 코드 내에서 `getflag()` 함수가 플래그를 반환하고, 사용자 입력과 문자 단위로 비교하는 루프가 존재한다.  

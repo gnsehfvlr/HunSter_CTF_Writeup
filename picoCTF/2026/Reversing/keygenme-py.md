@@ -63,7 +63,7 @@ key_full_template_trial = key_part_static1_trial + key_part_dynamic1_trial + key
 
 ---
 
-## 🧠 취약점 분석
+## 🧠 문제 분석
 
 스크립트 내부에는 다음과 같은 키 검증 로직이 포함되어 있습니다:
 

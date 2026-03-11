@@ -60,7 +60,7 @@ strings /sandbox/bins/re3-unpacked.exe | grep -i -A5 -B5 'flag\|fail\|success\|c
 
 ---
 
-## 🧠 취약점 분석
+## 🧠 문제 분석
 
 ### 1) 난독화 및 제어 흐름 왜곡
 

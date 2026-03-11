@@ -60,7 +60,7 @@ DECIMAL       HEXADECIMAL     DESCRIPTION
 
 ---
 
-## 🧠 취약점 분석
+## 🧠 문제 분석
 
 LSB 스테가노그래피는 이미지의 픽셀 값 중 가장 하위 비트(Least Significant Bit)를 조작하여 데이터를 숨기는 기법이다. PNG는 무손실 압축 형식이므로, 픽셀 값의 미세한 변화가 눈에 띄지 않으며, 이로 인해 스테가노그래피에 적합하다.
 
