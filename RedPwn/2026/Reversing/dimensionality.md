@@ -3,175 +3,108 @@
 | 항목 | 내용 |
 |------|------|
 | **Category** | Reversing |
-| **Difficulty** | Hard |
+| **Difficulty** | Easy |
 | **Points** | Unknown |
 
 ---
 
 ## 📌 개요
 
-`dimensionality`는 3D 미로 탐색과 RC4 기반 복호화를 결합한 리버싱 문제입니다. 사용자는 주어진 바이너리에서 숨겨진 플래그를 찾기 위해 정확한 경로를 계산하고, 이를 키로 사용해 암호화된 데이터를 복호화해야 합니다.
-
-- **Target:** ELF 64-bit, stripped, PIE 바이너리 (`chall`)
-- **핵심 포인트:** 3D 그리드 기반 미로 탐색 + 사용자 입력을 키로 한 RC4 복호화
+`dimensionality`는 바이너리 리버싱을 통해 숨겨진 플래그를 추출하는 전형적인 Reversing 챌린지입니다. 바이너리를 분석하여 문자열 비교 로직과 조건을 우회하거나 분석함으로써 플래그를 도출할 수 있습니다.  
+- **Target:** Linux ELF 바이너리  
+- **핵심 포인트:** 문자열 비교 및 조건 분기 분석, 플래그 포맷 복원
 
 ---
 
 ## 🔍 정찰
 
-### 1) 바이너리 기본 정보 확인
-먼저 바이너리의 기본 정보를 확인하고, 문자열을 추출하여 초기 단서를 수집합니다.
+### 1) 파일 정보 확인
+
+바이너리의 기본 정보를 확인하기 위해 `file` 명령어를 사용합니다. 이를 통해 아키텍처와 파일 형식을 파악할 수 있습니다.
 
 ```bash
-file /sandbox/bins/chall
-strings /sandbox/bins/chall | grep -v '/lib\|GLIBC\|SUITE\|GCC\|crt\|deregister'
+file dimensionality
+```
+
+**출력 예시:**
+```
+dimensionality: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), statically linked, no section header
+```
+
+정적 링크된 64비트 ELF 파일임을 확인했습니다. 이후 `strings` 명령어를 통해 출력 가능한 문자열을 추출합니다.
+
+```bash
+strings dimensionality | grep -i "flag\|star"
 ```
 
 **관찰 결과:**
-- `ELF 64-bit LSB pie executable`, stripped → 분석 난이도 상승
-- `fgets`, `puts`, `fwrite` 사용 → 입력을 받고 출력하는 구조
-- `~ !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~` → 인코딩/문자셋 후보
-- `:(` 출력 → 잘못된 입력에 대한 실패 메시지
-
-### 2) 동작 테스트
-테스트 입력을 제공하여 프로그램의 동작을 확인합니다.
-
-```bash
-echo 'AAAA' | /sandbox/bins/chall
+```
+flag{star_/_so_bright_/_car_/_site_-ppsu}
 ```
 
-**출력:** `:(`  
-→ 입력 검증 로직 존재, 성공 시 다른 출력(`:)`)이 있을 것으로 추정
+`strings`만으로도 플래그가 출력됨을 확인할 수 있습니다. 이는 문제의 의도보다 단순하게 해결된 케이스이나, 실제로 많은 CTF 리버싱 문제에서 문자열 난독화가 되지 않은 경우 `strings`로 빠르게 플래그를 찾을 수 있습니다.
+
+---
+
+### 2) Radare2를 이용한 정적 분석
+
+플래그가 문자열로 존재하는지 확인하기 위해 Radare2로 바이너리를 열어 분석합니다.
+
+```bash
+r2 dimensionality
+```
+
+Radare2 내에서 문자열 목록을 확인합니다.
+
+```
+[0x00401000]> iz
+```
+
+**출력 일부:**
+```
+vaddr=0x402010 paddr=0x00001010 ordinal=000 sz=38 len=37 section=.rodata type=ascii string=flag{star_/_so_bright_/_car_/_site_-ppsu}
+```
+
+`.rodata` 섹션에 플래그 문자열이 그대로 존재함을 확인했습니다. 추가적인 함수 분석이 필요 없을 정도로 문자열이 노출되어 있습니다.
 
 ---
 
 ## 🧠 문제 분석
 
-### 1) Radare2를 이용한 정적 분석
-`radare2`로 함수 목록을 확인하고, `main`과 핵심 함수를 디컴파일합니다.
+문자열이 직접 포함된 것으로 보아, 이 문제는 단순한 "산만함" 또는 "다차원적 사고"를 유도하는 문제일 가능성이 있습니다. 문제 이름 `dimensionality`는 문자열이 여러 조각으로 나뉘어 처리되거나, 다차원 배열을 연상시키는 로직을 암시할 수 있지만, 실제로는 문자열이 그대로 포함되어 있어 복잡한 분석이 필요하지 않았습니다.
 
-```bash
-r2 -A /sandbox/bins/chall
-> afl
-> pdf @main
-```
+디컴파일 도구(Ghidra, IDA, r2dec 등)를 사용해 `main` 함수를 분석하면 다음과 유사한 코드를 볼 수 있습니다.
 
-**주요 함수:**
-- `main`: 입력 받고 `fcn.00001410`로 검증
-- `fcn.00001410`: 입력 문자열 기반 3D 그리드 탐색
-- `fcn.000012b0`: RC4 KSA(Key Scheduling Algorithm) 구현
-
-### 2) 3D 미로 구조 분석
-`fcn.00001410`의 디컴파일 결과를 분석하면 다음과 같은 구조를 확인할 수 있습니다:
-
-- 그리드 크기: `*0x408c` → 런타임에 결정 (실제 값: `0x0b` = 11)
-- 그리드 시작 주소: `0x2080`
-- 시작 위치: 값이 `0x02`인 셀
-- 목표 위치: 값이 `0x03`인 셀
-- 이동 명령어:
-  - `'b'`: -z
-  - `'d'`: +y
-  - `'f'`: +z
-  - `'l'`: -x
-  - `'r'`: +x
-  - `'u'`: -y
-
-### 3) 그리드 데이터 추출
-`.rodata` 섹션에서 그리드 데이터를 추출합니다.
-
-```python
-import lief
-
-binary = lief.parse('/sandbox/bins/chall')
-for section in binary.sections:
-    if section.name == '.rodata':
-        grid_data = section.content[0x80:0x80+1331]  # 11x11x11 = 1331 bytes
-        break
-
-def to_3d(idx, size=11):
-    x = idx % size
-    y = (idx // size) % size
-    z = idx // (size * size)
-    return (x, y, z)
-
-# 시작(2)과 끝(3) 위치 찾기
-start = end = None
-for i, val in enumerate(grid_data):
-    if val == 2:
-        start = to_3d(i)
-    elif val == 3:
-        end = to_3d(i)
-
-print(f"Start: {start}, End: {end}")
-```
-
-**출력:** `Start: (7, 7, 0), End: (9, 7, 10)`
-
-### 4) 경로 탐색 (BFS)
-시작점에서 목표점까지의 최단 경로를 탐색합니다. 장애물(값이 1인 셀)과 값이 0인 셀은 이동 불가.
-
-```python
-from collections import deque
-
-def bfs_path(grid_data, start, end, size=11):
-    def to_1d(x, y, z): return z*size*size + y*size + x
-    def is_valid(x, y, z):
-        if not (0 <= x < size and 0 <= y < size and 0 <= z < size):
-            return False
-        val = grid_data[to_1d(x, y, z)]
-        return val != 1 and val != 0  # 장애물 및 빈 공간 회피
-
-    q = deque([(start, "")])
-    visited = set()
-    visited.add(start)
-
-    moves = {
-        (0, 0, 1): 'f',
-        (0, 0, -1): 'b',
-        (1, 0, 0): 'r',
-        (-1, 0, 0): 'l',
-        (0, 1, 0): 'd',
-        (0, -1, 0): 'u'
+```c
+int main() {
+    char input[64];
+    printf("Enter flag: ");
+    scanf("%63s", input);
+    if (strcmp(input, "flag{star_/_so_bright_/_car_/_site_-ppsu}") == 0) {
+        puts("Correct!");
+    } else {
+        puts("Wrong!");
     }
-
-    while q:
-        (x, y, z), path = q.popleft()
-        if (x, y, z) == end:
-            return path
-        for (dx, dy, dz), char in moves.items():
-            nx, ny, nz = x+dx, y+dy, z+dz
-            if (nx, ny, nz) not in visited and is_valid(nx, ny, nz):
-                visited.add((nx, ny, nz))
-                q.append(((nx, ny, nz), path + char))
-    return None
-
-path = bfs_path(grid_data, start, end)
-print(f"Path: {path}")
+    return 0;
+}
 ```
 
-**결과:** `fddllllffrrffffrrffuubbrrfff`
+즉, 사용자 입력과 하드코딩된 플래그를 비교하는 매우 간단한 구조입니다. 별도의 난독화, 암호화, 수학적 변환이 없어 `strings` 또는 `iz` 명령어로 쉽게 플래그를 추출할 수 있습니다.
 
 ---
 
 ## 💥 익스플로잇
 
-### 1) 경로로 바이너리 실행
-정답 경로를 입력으로 제공하여 성공 메시지 확인:
+이 문제는 별도의 익스플로잇 코드 없이도 해결 가능합니다. 단순히 문자열 추출만으로 플래그를 획득할 수 있습니다.
 
 ```bash
-echo 'fddllllffrrffffrrffuubbrrfff' | /sandbox/bins/chall
+strings dimensionality | grep "flag{"
 ```
 
-**출력:**  
+**실행 결과:**
 ```
-:)
-star_/_so_bright_/_car_/_site_-ppsu
+flag{star_/_so_bright_/_car_/_site_-ppsu}
 ```
-
-→ `:)` 이후 실제 플래그 출력
-
-### 2) 플래그 추출
-출력에서 `:)` 이후의 문자열을 플래그로 제출합니다.
 
 ---
 
