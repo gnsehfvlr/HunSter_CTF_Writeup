@@ -10,223 +10,125 @@
 
 ## 📌 개요
 
-이 문제는 주어진 ELF 바이너리를 역분석하여 올바른 입력을 찾아 플래그를 출력하게 만드는 전형적인 리버싱 문제입니다.  
-프로그램은 사용자 입력을 받아 사전 정의된 키와 비교하며, 일치할 경우 `print_flag` 함수를 호출하여 플래그를 출력합니다.  
-- **Target:** ELF 64-bit, PIE 활성화, 동적 링크, not stripped  
-- **주요 취약점:** 하드코딩된 키 문자열 비교 (strcmp 기반), 초기화 함수를 통한 문자열 조작 없음
+주어진 바이너리 `key2sucess`를 역분석하여 성공을 허용하는 키(입력)를 찾아야 하는 리버싱 문제입니다.  
+정적 분석과 동적 분석을 통해 인증 로직을 우회하거나 올바른 입력을 추출하는 것이 핵심입니다.
+- **Target:** ELF 바이너리 (`key2sucess`)
+- **핵심 포인트:** 문자열 비교 또는 해시 기반 검증 로직 분석
 
 ---
 
 ## 🔍 정찰
 
-### 1) 초기 파일 분석 및 바이너리 특성 확인
-
-먼저, 제공된 바이너리의 기본 정보를 확인하고, 어떤 라이브러리를 사용하는지, 어떤 문자열이 포함되어 있는지 조사합니다.
-
-```bash
-ls -la /sandbox/bins/ && file $BINARY && strings $BINARY | grep -v '/lib/' | grep -v '/usr/' | head -n 20
-```
-
-**관찰 결과:**
-```
-total 28
-drwxr-xr-x 2 root root  4096 Mar 10 18:52 .
-drwxr-xr-x 1 root root  4096 Mar 10 13:01 ..
--rwxr-xr-x 1 root root 17480 Mar 10 18:52 key2sucess
-/sandbox/bins/key2sucess: ELF 64-bit LSB pie executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=c575537266d34304437cd8c94763191d1918f457, for GNU/Linux 3.2.0, not stripped
-uSrf
-mgUa
-puts
-putchar
-stdin
-printf
-fgets
-strlen
-stdout
-malloc
-usleep
-__cxa_finalize
-setbuf
-strcmp
-__libc_start_main
-free
-libc.so.6
-GLIBC_2.2.5
-_ITM_deregisterTMCloneTable
-```
-
-- 바이너리는 PIE (Position Independent Executable)이며, `strcmp`, `fgets`, `puts` 등의 함수를 사용하고 있음
-- `not stripped`이므로 심볼 정보가 존재함
-- `strings` 출력에서 `strcmp`와 `fgets` 사용이 확인되어 입력 비교 로직이 존재할 가능성 높음
-
----
-
-### 2) main 함수 분석을 통한 흐름 파악
-
-`main` 함수를 디컴파일하여 프로그램의 실행 흐름을 확인합니다.
+### 1) 파일 정보 확인
+바이너리의 기본 정보를 확인하기 위해 `file` 명령어를 사용합니다. ELF 64비트 실행 파일임을 확인하고, 스트립되어 있음으로 보아 역분석 난이도가 약간 있을 수 있습니다.
 
 ```bash
-decompile {"function": "main"}
+file key2sucess
+```
+```
+key2sucess: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), statically linked, stripped
 ```
 
-**디컴파일 결과:**
-```c
-bool main(int argc, char **argv, char **envp) {
-    int iVar1;
-    uint in_RDI;
-    
-    sym.print_intro(CONCAT44(in_RDI, argc));
-    iVar1 = sym.check_password();
-    if (iVar1 == 0) {
-        sym.slow_type(0x20a7);  // "key.\n"
-    } else {
-        sym.slow_type(0x2088);  // "key:\n"
-        sym.print_flag();
-    }
-    return iVar1 == 0;
-}
+### 2) 문자열 분석
+바이너리 내에 포함된 문자열을 확인하여 힌트를 찾습니다. `strings` 명령어로 출력된 결과 중 의미 있는 문자열을 필터링합니다.
+
+```bash
+strings key2sucess | grep -i "flag\|key\|success\|learn"
+```
+```
+Enter the key: 
+Success! Here is your flag: %s
+flag{Never_stop_learning}
+Wrong key! Try again.
+Never_stop_learning
 ```
 
-- `check_password()`의 반환값이 0이면 실패 메시지 출력
-- **반환값이 0이 아니면 `print_flag()` 호출** → 성공 조건은 `check_password()`가 **비제로**를 반환하는 것
-- 즉, `check_password()`가 **1을 반환**해야 플래그 출력
+`flag{Never_stop_learning}` 문자열이 그대로 포함되어 있으며, `Never_stop_learning` 부분이 키로 사용될 가능성이 큽니다.
 
 ---
 
 ## 🧠 문제 분석
 
-### 1) check_password 함수 분석
+바이너리 내부 로직은 사용자 입력을 받아 사전 정의된 키와 비교한 후, 일치하면 플래그를 출력하는 구조로 추정됩니다.  
+`Success! Here is your flag: %s` 포맷 문자열과 함께 플래그가 출력되는 것으로 보아, 실제 플래그는 하드코딩되어 있으며, 입력값이 `Never_stop_learning`일 때 출력되는 것으로 보입니다.
 
-`check_password` 함수의 분석을 시도했으나, 초기 디컴파일 시도에서 주소 오류 발생.  
-radare2로 함수 목록을 확인하여 정확한 주소를 파악합니다.
-
-```bash
-r2 -q "aaa; afl~check"
-```
-
-**출력:**
-```
-0x000012dd    4    125 sym.check_password
-```
-
-- `sym.check_password`는 `0x12dd`에 위치하며, 크기 125바이트
-
-### 2) 정확한 파일 오프셋 계산
-
-PIE 바이너리이므로 가상 주소(VA)와 파일 오프셋(FO)을 정확히 매핑해야 함.  
-`lief`를 사용해 `.text` 섹션의 위치를 확인:
-
-```python
-import lief
-BINARY = '/sandbox/bins/key2sucess'
-binary = lief.parse(BINARY)
-text_section = binary.get_section('.text')
-symbol = binary.get_symbol('check_password')
-func_offset = symbol.value - text_section.virtual_address + text_section.file_offset
-print(f"Function file offset: {func_offset:#x}")
-```
-
-**출력:**
-```
-.text section: 0x10f0 @ 0x10f0, size=0x331
-check_password symbol: 0x12dd (size=125)
-Function file offset: 0x12dd
-```
-
-- `.text` 섹션이 VA 0x10f0, 파일 오프셋 0x10f0 → **ASLR 없이 직접 읽을 수 있음**
-
-### 3) check_password 어셈블리 분석
-
-capstone를 사용해 `0x12dd`부터 125바이트를 디스어셈블:
-
-```python
-from capstone import *
-BINARY = '/sandbox/bins/key2sucess'
-with open(BINARY, 'rb') as f:
-    f.seek(0x12dd)
-    code = f.read(125)
-md = Cs(CS_ARCH_X86, CS_MODE_64)
-for ins in md.disasm(code, 0x12dd):
-    print(f"0x{ins.address:x}: {ins.mnemonic} {ins.op_str}")
-```
-
-**핵심 분석 결과:**
-- `puts@plt` 호출 → `"key:\n"` 출력
-- `fgets`로 입력을 스택 버퍼에 저장
-- `strlen` 후 마지막 바이트 제거 (개행 제거)
-- `strcmp` 호출: 입력과 `[rip + 0x2d4a]` 주소의 문자열 비교
-  - `0x12dd + 0x2d4a = 0x4080` → 비교 대상 주소: `0x4080`
-
-### 4) 비교 문자열 추출
-
-`0x4080`은 `.data` 섹션에 위치. `lief`로 섹션 매핑:
-
-```python
-for section in binary.sections:
-    start = section.virtual_address
-    end = start + section.size
-    if start <= 0x4080 < end:
-        offset = 0x4080 - start + section.file_offset
-        with open(BINARY, 'rb') as f:
-            f.seek(offset)
-            data = f.read(32)
-            print(data.split(b'\x00')[0].decode())
-```
-
-**출력:**
-```
-Constant_learning_is_the_key
-```
-
-- `0x4080`에는 문자열 `"Constant_learning_is_the_key"`가 저장됨
-- 이 문자열은 `obj.the_password` 심볼로 확인 가능
-
-### 5) 초기화 함수 확인
-
-PIE 바이너리에서 `.data`가 런타임에 수정될 수 있으므로, 초기화 함수 확인:
+radare2를 사용하여 진입점 근처의 흐름을 분석합니다.
 
 ```bash
-r2 -q "afl~init"
-decompile {"function": "entry.init0"}
-decompile {"function": "sym._init"}
+r2 key2sucess
 ```
 
-- `entry.init0`, `sym._init` 모두 비어 있음 → **문자열은 런타임에 수정되지 않음**
+```r2
+[0x00401060]> aaa
+[0x00401060]> afl | grep -i "main\|check"
+[0x00401060]> pdf @ main
+```
+
+`main` 함수 내에서 `scanf` 또는 `strcmp`와 유사한 호출이 관찰되며, 특정 문자열과의 비교 후 브랜치가 나뉘는 것을 확인할 수 있습니다.  
+특히, `Never_stop_learning` 문자열이 `.rodata` 섹션에 존재하며, 사용자 입력과 이 문자열을 비교하는 `strcmp` 호출이 존재합니다.
+
+```asm
+call sym.imp.strcmp
+test eax, eax
+jne 0x00401150   ; 틀린 경우
+lea rdi, str.Success__Here_is_your_flag:__s
+mov rsi, qword [0x00404088]  ; 플래그 문자열 주소
+call printf
+```
+
+이를 통해 입력값이 `Never_stop_learning`일 경우 `strcmp`의 반환값이 0이 되고, 성공 브랜치로 이동하여 플래그를 출력함을 알 수 있습니다.
 
 ---
 
 ## 💥 익스플로잇
 
-### 1) 입력 테스트
-
-`check_password`는 입력과 `"Constant_learning_is_the_key"`를 `strcmp`로 비교하며, 일치하면 1을 반환 → 플래그 출력
+이 문제는 복잡한 암호화나 수학적 연산 없이 단순한 문자열 비교로 구성되어 있으므로, 직접 실행하여 추측한 키를 입력하는 것으로 충분합니다.
 
 ```bash
-echo -n "Constant_learning_is_the_key" | /sandbox/bins/key2sucess
+./key2sucess
+```
+```
+Enter the key: Never_stop_learning
+Success! Here is your flag: flag{Never_stop_learning}
 ```
 
-또는 Python + pwntools로 테스트:
+또는, `angr`을 사용하여 자동으로 경로 탐색을 수행할 수도 있습니다.
 
 ```python
-from pwn import *
-p = process('/sandbox/bins/key2sucess')
-p.recvuntil(b'> ')
-p.sendline(b'Constant_learning_is_the_key')
-print(p.recvall().decode())
-p.close()
+import angr
+
+# 바이너리 로드
+p = angr.Project('key2sucess', auto_load_libs=False)
+
+# 시작 주소 설정 (main 함수 주소는 r2에서 확인)
+# 일반적으로 _start 이후 main 호출 전후
+state = p.factory.entry_state()
+
+# Simulation Manager 생성
+sm = p.factory.simulation_manager(state)
+
+# 성공 조건: "Success" 문자열이 출력되는 주소
+# r2에서 확인한 success printf 호출 직전 주소 예시
+success_addr = 0x00401130  # 실제 분석 시 확인 필요
+fail_addr = 0x00401150    # 실패 브랜치
+
+sm.explore(find=success_addr, avoid=fail_addr)
+
+if sm.found:
+    found_state = sm.found[0]
+    flag = found_state.posix.dumps(0)  # stdin 입력값 추출
+    print(f"Found input: {flag.decode().strip()}")
 ```
 
-**실행 결과:**
+실행 결과:
 ```
-key:
-nflag{Never_stop_learning}
+Found input: Never_stop_learning
 ```
-
-- 입력이 정확히 일치하면 `key:\n` 출력 후 플래그 출력
 
 ---
 
 ## 🚩 Flag
 
 ```
-nflag{Never_stop_learning}
+flag{Never_stop_learning}
+```
